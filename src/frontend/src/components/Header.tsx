@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart, Search, Menu, X, Package } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, Package, Heart, HeadphonesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,8 @@ interface HeaderProps {
 }
 
 export function Header({ searchQuery = "", onSearchChange }: HeaderProps) {
-  const { cartCount } = useApp();
+  const { cartCount, wishlistIds } = useApp();
+  const wishlistCount = wishlistIds.length;
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
@@ -68,6 +69,37 @@ export function Header({ searchQuery = "", onSearchChange }: HeaderProps) {
 
           {/* Right actions */}
           <div className="flex items-center gap-2 ml-auto">
+            {/* Support */}
+            <Link to="/support">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground hover:bg-white/20 hidden sm:flex"
+                aria-label="Support"
+                title="Support"
+              >
+                <HeadphonesIcon className="h-5 w-5" />
+              </Button>
+            </Link>
+
+            {/* Wishlist */}
+            <Link to="/wishlist">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-primary-foreground hover:bg-white/20"
+                aria-label="Wishlist"
+              >
+                <Heart className="h-6 w-6" />
+                {wishlistCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-primary">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+
+            {/* Cart */}
             <Link to="/cart">
               <Button
                 variant="ghost"

@@ -79,6 +79,218 @@
   }
 }
 
+/* ============================================================
+   AWARA STORE THEMES — data-theme attribute selectors
+   Values are raw OKLCH: L C H (no oklch() wrapper)
+   ============================================================ */
+
+/* Tokyo — dark neon */
+[data-theme="tokyo"] {
+  --background: 0.08 0.01 260;
+  --foreground: 0.94 0.01 0;
+  --card: 0.12 0.02 260;
+  --card-foreground: 0.94 0.01 0;
+  --popover: 0.12 0.02 260;
+  --popover-foreground: 0.94 0.01 0;
+  --primary: 0.60 0.28 355;
+  --primary-foreground: 1 0 0;
+  --secondary: 0.15 0.02 260;
+  --secondary-foreground: 0.85 0.01 0;
+  --muted: 0.16 0.02 260;
+  --muted-foreground: 0.62 0.01 0;
+  --accent: 0.82 0.18 195;
+  --accent-foreground: 0.08 0.01 260;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.20 0.02 260;
+  --input: 0.20 0.02 260;
+  --ring: 0.60 0.28 355;
+}
+
+/* Minimal White — clean light */
+[data-theme="minimal-white"] {
+  --background: 1 0 0;
+  --foreground: 0.13 0.01 0;
+  --card: 0.98 0.003 0;
+  --card-foreground: 0.13 0.01 0;
+  --popover: 1 0 0;
+  --popover-foreground: 0.13 0.01 0;
+  --primary: 0.13 0.01 0;
+  --primary-foreground: 1 0 0;
+  --secondary: 0.94 0.005 0;
+  --secondary-foreground: 0.30 0.01 0;
+  --muted: 0.95 0.003 0;
+  --muted-foreground: 0.48 0.01 0;
+  --accent: 0.60 0.02 0;
+  --accent-foreground: 1 0 0;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.88 0.005 0;
+  --input: 0.88 0.005 0;
+  --ring: 0.13 0.01 0;
+}
+
+/* Diwali — warm festive */
+[data-theme="diwali"] {
+  --background: 0.13 0.03 50;
+  --foreground: 0.97 0.04 80;
+  --card: 0.19 0.04 50;
+  --card-foreground: 0.97 0.04 80;
+  --popover: 0.19 0.04 50;
+  --popover-foreground: 0.97 0.04 80;
+  --primary: 0.72 0.19 60;
+  --primary-foreground: 0.10 0.02 50;
+  --secondary: 0.22 0.04 50;
+  --secondary-foreground: 0.90 0.04 80;
+  --muted: 0.20 0.03 50;
+  --muted-foreground: 0.70 0.04 70;
+  --accent: 0.88 0.18 85;
+  --accent-foreground: 0.13 0.03 50;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.28 0.05 55;
+  --input: 0.28 0.05 55;
+  --ring: 0.72 0.19 60;
+}
+
+/* Monsoon — cool blues */
+[data-theme="monsoon"] {
+  --background: 0.12 0.03 235;
+  --foreground: 0.93 0.02 230;
+  --card: 0.16 0.04 235;
+  --card-foreground: 0.93 0.02 230;
+  --popover: 0.16 0.04 235;
+  --popover-foreground: 0.93 0.02 230;
+  --primary: 0.65 0.16 230;
+  --primary-foreground: 1 0 0;
+  --secondary: 0.18 0.03 235;
+  --secondary-foreground: 0.85 0.02 230;
+  --muted: 0.18 0.03 235;
+  --muted-foreground: 0.62 0.02 230;
+  --accent: 0.78 0.14 175;
+  --accent-foreground: 0.12 0.03 235;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.22 0.04 235;
+  --input: 0.22 0.04 235;
+  --ring: 0.65 0.16 230;
+}
+
+/* Midnight — deep purple premium */
+[data-theme="midnight"] {
+  --background: 0.10 0.02 280;
+  --foreground: 0.95 0.01 280;
+  --card: 0.14 0.03 280;
+  --card-foreground: 0.95 0.01 280;
+  --popover: 0.14 0.03 280;
+  --popover-foreground: 0.95 0.01 280;
+  --primary: 0.62 0.20 280;
+  --primary-foreground: 1 0 0;
+  --secondary: 0.17 0.03 280;
+  --secondary-foreground: 0.85 0.01 280;
+  --muted: 0.17 0.02 280;
+  --muted-foreground: 0.62 0.02 280;
+  --accent: 0.78 0.10 290;
+  --accent-foreground: 0.10 0.02 280;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.22 0.04 280;
+  --input: 0.22 0.04 280;
+  --ring: 0.62 0.20 280;
+}
+
+/* Sakura — soft pink */
+[data-theme="sakura"] {
+  --background: 0.98 0.01 350;
+  --foreground: 0.22 0.04 330;
+  --card: 0.97 0.01 350;
+  --card-foreground: 0.22 0.04 330;
+  --popover: 0.97 0.01 350;
+  --popover-foreground: 0.22 0.04 330;
+  --primary: 0.62 0.25 355;
+  --primary-foreground: 1 0 0;
+  --secondary: 0.93 0.02 350;
+  --secondary-foreground: 0.35 0.04 330;
+  --muted: 0.93 0.01 350;
+  --muted-foreground: 0.55 0.04 340;
+  --accent: 0.88 0.10 10;
+  --accent-foreground: 0.22 0.04 330;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.88 0.03 350;
+  --input: 0.88 0.03 350;
+  --ring: 0.62 0.25 355;
+}
+
+/* Desert Sand — warm earthy */
+[data-theme="desert-sand"] {
+  --background: 0.94 0.04 80;
+  --foreground: 0.28 0.05 50;
+  --card: 0.99 0.02 75;
+  --card-foreground: 0.28 0.05 50;
+  --popover: 0.99 0.02 75;
+  --popover-foreground: 0.28 0.05 50;
+  --primary: 0.60 0.13 60;
+  --primary-foreground: 1 0 0;
+  --secondary: 0.90 0.04 78;
+  --secondary-foreground: 0.38 0.05 55;
+  --muted: 0.91 0.03 78;
+  --muted-foreground: 0.55 0.04 60;
+  --accent: 0.72 0.10 70;
+  --accent-foreground: 0.28 0.05 50;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.83 0.05 78;
+  --input: 0.83 0.05 78;
+  --ring: 0.60 0.13 60;
+}
+
+/* Ocean — deep teal */
+[data-theme="ocean"] {
+  --background: 0.12 0.03 215;
+  --foreground: 0.90 0.04 200;
+  --card: 0.17 0.04 215;
+  --card-foreground: 0.90 0.04 200;
+  --popover: 0.17 0.04 215;
+  --popover-foreground: 0.90 0.04 200;
+  --primary: 0.62 0.17 210;
+  --primary-foreground: 1 0 0;
+  --secondary: 0.20 0.04 215;
+  --secondary-foreground: 0.82 0.03 200;
+  --muted: 0.20 0.03 215;
+  --muted-foreground: 0.62 0.03 205;
+  --accent: 0.74 0.14 195;
+  --accent-foreground: 0.12 0.03 215;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.24 0.04 215;
+  --input: 0.24 0.04 215;
+  --ring: 0.62 0.17 210;
+}
+
+/* Neon Mumbai — vibrant high-contrast */
+[data-theme="neon-mumbai"] {
+  --background: 0.10 0.01 0;
+  --foreground: 1 0 0;
+  --card: 0.14 0.01 0;
+  --card-foreground: 1 0 0;
+  --popover: 0.14 0.01 0;
+  --popover-foreground: 1 0 0;
+  --primary: 0.60 0.26 28;
+  --primary-foreground: 1 0 0;
+  --secondary: 0.16 0.01 0;
+  --secondary-foreground: 0.85 0.01 0;
+  --muted: 0.16 0.01 0;
+  --muted-foreground: 0.65 0.01 0;
+  --accent: 0.88 0.20 90;
+  --accent-foreground: 0.10 0.01 0;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 1 0 0;
+  --border: 0.22 0.01 0;
+  --input: 0.22 0.01 0;
+  --ring: 0.60 0.26 28;
+}
+
 @layer utilities {
   .font-display {
     font-family: 'Poppins', sans-serif;

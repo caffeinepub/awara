@@ -44,6 +44,14 @@ export function Footer() {
                   Checkout
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/support"
+                  className="hover:text-primary transition-colors"
+                >
+                  Support
+                </Link>
+              </li>
             </ul>
           </div>
 

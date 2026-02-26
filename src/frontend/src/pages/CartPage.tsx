@@ -10,14 +10,14 @@ import { useApp } from "../context/AppContext";
 import { toast } from "sonner";
 
 export function CartPage() {
-  const { cartItems, removeFromCart, updateCartQuantity, cartTotal, cartCount } = useApp();
+  const { cartItems, removeFromCart, updateCartQuantity, cartTotal, cartCount, freeDeliveryThreshold, getEffectivePrice } = useApp();
 
   const handleRemove = (productId: string, name: string) => {
     removeFromCart(productId);
     toast.info(`${name} removed from cart`);
   };
 
-  const deliveryCharge = cartTotal >= 499 ? 0 : 49;
+  const deliveryCharge = cartTotal >= freeDeliveryThreshold ? 0 : 49;
   const finalTotal = cartTotal + deliveryCharge;
 
   return (
@@ -104,9 +104,16 @@ export function CartPage() {
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <span className="font-bold text-foreground font-display">
-                        ₹{(item.product.price * item.quantity).toLocaleString("en-IN")}
-                      </span>
+                      <div className="text-right">
+                        <span className="font-bold text-foreground font-display">
+                          ₹{(getEffectivePrice(item.product) * item.quantity).toLocaleString("en-IN")}
+                        </span>
+                        {getEffectivePrice(item.product) < item.product.price && (
+                          <p className="text-xs text-muted-foreground line-through">
+                            ₹{(item.product.price * item.quantity).toLocaleString("en-IN")}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -136,9 +143,9 @@ export function CartPage() {
                         : `₹${deliveryCharge}`}
                     </span>
                   </div>
-                  {cartTotal < 499 && (
+                  {cartTotal < freeDeliveryThreshold && (
                     <p className="text-xs text-muted-foreground bg-muted rounded-lg p-2">
-                      Add ₹{(499 - cartTotal).toLocaleString("en-IN")} more for free delivery
+                      Add ₹{(freeDeliveryThreshold - cartTotal).toLocaleString("en-IN")} more for free delivery
                     </p>
                   )}
                   <Separator />

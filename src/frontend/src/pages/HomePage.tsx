@@ -32,7 +32,8 @@ const FILTER_CATEGORIES: FilterCategory[] = [
 ];
 
 export function HomePage() {
-  const { products } = useApp();
+  const { products, freeDeliveryThreshold, getActiveOccasion } = useApp();
+  const activeOccasion = getActiveOccasion();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<FilterCategory>("All");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -61,27 +62,49 @@ export function HomePage() {
 
       <main className="flex-1">
         {/* Hero Banner */}
-        <div className="awara-gradient text-white py-10 px-4">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl sm:text-4xl font-bold font-display mb-2">
-              Shop Everything You Need
-            </h1>
-            <p className="text-white/80 text-lg">
-              Quality products at unbeatable prices. Free delivery above ₹499!
-            </p>
-            <div className="flex gap-3 mt-4 flex-wrap">
-              <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium">
-                🚚 Fast Delivery
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium">
-                ✅ Quality Assured
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium">
-                💰 Best Prices
+        {activeOccasion ? (
+          <div
+            className="relative text-white py-10 px-4 min-h-[160px] flex items-center"
+            style={{
+              backgroundImage: `url(${activeOccasion.bannerImageUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
+            {/* Dark overlay for readability */}
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative z-10 max-w-7xl mx-auto w-full text-center">
+              <h1 className="text-3xl sm:text-5xl font-bold font-display mb-2 drop-shadow-lg">
+                {activeOccasion.title}
+              </h1>
+              <p className="text-white/90 text-lg sm:text-xl drop-shadow">
+                {activeOccasion.text}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="awara-gradient text-white py-10 px-4">
+            <div className="max-w-7xl mx-auto">
+              <h1 className="text-3xl sm:text-4xl font-bold font-display mb-2">
+                Shop Everything You Need
+              </h1>
+              <p className="text-white/80 text-lg">
+                Quality products at unbeatable prices. Free delivery above ₹{freeDeliveryThreshold}!
+              </p>
+              <div className="flex gap-3 mt-4 flex-wrap">
+                <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium">
+                  🚚 Fast Delivery
+                </div>
+                <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium">
+                  ✅ Quality Assured
+                </div>
+                <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium">
+                  💰 Best Prices
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="max-w-7xl mx-auto px-4 py-6">
           {/* Category Filter */}

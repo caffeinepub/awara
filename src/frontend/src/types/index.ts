@@ -58,3 +58,20 @@ export interface CategoryConfig {
   imageUrl?: string;
   emoji: string;
 }
+
+export interface Discount {
+  id: string;
+  productId: string; // "all" means applies to all products
+  type: "percent" | "fixed";
+  value: number;
+  expiresAt: string; // ISO date string
+}
+
+export interface Occasion {
+  id: string;
+  title: string;
+  text: string;
+  bannerImageUrl: string;
+  startDate: string; // YYYY-MM-DD
+  endDate: string;   // YYYY-MM-DD
+}

@@ -1,4 +1,4 @@
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart, Eye, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "./StarRating";
@@ -12,13 +12,30 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onViewDetail }: ProductCardProps) {
-  const { addToCart } = useApp();
+  const { addToCart, toggleWishlist, isWishlisted, getEffectivePrice } = useApp();
+  const wishlisted = isWishlisted(product.id);
+  const effectivePrice = getEffectivePrice(product);
+  const isDiscounted = effectivePrice < product.price;
+  const discountBadgeText = isDiscounted
+    ? product.price > 0
+      ? `${Math.round((1 - effectivePrice / product.price) * 100)}% OFF`
+      : ""
+    : "";
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(product);
     toast.success(`${product.name} added to cart!`, {
-      description: `₹${product.price.toLocaleString("en-IN")}`,
+      description: `₹${effectivePrice.toLocaleString("en-IN")}`,
+    });
+  };
+
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleWishlist(product.id);
+    toast(wishlisted ? "Removed from wishlist" : "Added to wishlist!", {
+      description: product.name,
+      icon: wishlisted ? "💔" : "❤️",
     });
   };
 
@@ -33,6 +50,20 @@ export function ProductCard({ product, onViewDetail }: ProductCardProps) {
           loading="lazy"
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+
+        {/* Wishlist button */}
+        <button
+          type="button"
+          onClick={handleToggleWishlist}
+          className="absolute top-2 right-2 h-8 w-8 flex items-center justify-center rounded-full bg-white/90 shadow-md transition-all duration-200 hover:scale-110 z-10"
+          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          <Heart
+            className={`h-4 w-4 transition-colors duration-200 ${
+              wishlisted ? "fill-red-500 text-red-500" : "text-gray-400"
+            }`}
+          />
+        </button>
 
         {/* Quick view overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -50,6 +81,11 @@ export function ProductCard({ product, onViewDetail }: ProductCardProps) {
         <Badge className="absolute top-2 left-2 bg-primary/90 text-primary-foreground text-xs">
           {product.category}
         </Badge>
+        {isDiscounted && discountBadgeText && (
+          <Badge className="absolute top-[2.2rem] left-2 bg-red-500 text-white text-xs">
+            {discountBadgeText}
+          </Badge>
+        )}
       </div>
 
       {/* Content */}
@@ -65,9 +101,16 @@ export function ProductCard({ product, onViewDetail }: ProductCardProps) {
         <StarRating rating={product.rating} reviewCount={product.reviewCount} />
 
         <div className="flex items-center justify-between mt-auto pt-2">
-          <span className="text-lg font-bold text-foreground font-display">
-            ₹{product.price.toLocaleString("en-IN")}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-foreground font-display">
+              ₹{effectivePrice.toLocaleString("en-IN")}
+            </span>
+            {isDiscounted && (
+              <span className="text-xs text-muted-foreground line-through">
+                ₹{product.price.toLocaleString("en-IN")}
+              </span>
+            )}
+          </div>
           <Button
             size="sm"
             className="gap-1 text-xs h-8 px-3 bg-primary text-primary-foreground hover:bg-primary/90"

@@ -4,20 +4,33 @@ import {
   createRootRoute,
   RouterProvider,
   Outlet,
+  useRouterState,
 } from "@tanstack/react-router";
 import { AppProvider } from "./context/AppContext";
 import { HomePage } from "./pages/HomePage";
 import { CartPage } from "./pages/CartPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { AdminPage } from "./pages/AdminPage";
+import { WishlistPage } from "./pages/WishlistPage";
+import { SupportPage } from "./pages/SupportPage";
+import { TimedLoginPopup } from "./components/TimedLoginPopup";
+
+// Wrapper that conditionally renders the timed popup (not on /admin)
+function RootLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAdminRoute = pathname === "/admin";
+
+  return (
+    <AppProvider>
+      <Outlet />
+      {!isAdminRoute && <TimedLoginPopup />}
+    </AppProvider>
+  );
+}
 
 // Root layout route
 const rootRoute = createRootRoute({
-  component: () => (
-    <AppProvider>
-      <Outlet />
-    </AppProvider>
-  ),
+  component: RootLayout,
 });
 
 // Page routes
@@ -45,12 +58,26 @@ const adminRoute = createRoute({
   component: AdminPage,
 });
 
+const wishlistRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/wishlist",
+  component: WishlistPage,
+});
+
+const supportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/support",
+  component: SupportPage,
+});
+
 // Route tree
 const routeTree = rootRoute.addChildren([
   homeRoute,
   cartRoute,
   checkoutRoute,
   adminRoute,
+  wishlistRoute,
+  supportRoute,
 ]);
 
 // Router

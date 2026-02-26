@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
@@ -53,7 +53,7 @@ function QRCodeDisplay({ upiId }: { upiId: string }) {
 }
 
 export function CheckoutPage() {
-  const { cartItems, cartTotal, upiId, placeOrder } = useApp();
+  const { cartItems, cartTotal, upiId, upiQrImageUrl, placeOrder, freeDeliveryThreshold, codEnabled, getEffectivePrice } = useApp();
   const navigate = useNavigate();
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
@@ -61,7 +61,14 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"upi" | "cod" | "card">("upi");
   const [orderPlaced, setOrderPlaced] = useState<Order | null>(null);
 
-  const deliveryCharge = cartTotal >= 499 ? 0 : 49;
+  // Auto-switch away from COD if it gets disabled
+  useEffect(() => {
+    if (!codEnabled && paymentMethod === "cod") {
+      setPaymentMethod("upi");
+    }
+  }, [codEnabled, paymentMethod]);
+
+  const deliveryCharge = cartTotal >= freeDeliveryThreshold ? 0 : 49;
   const finalTotal = cartTotal + deliveryCharge;
 
   const handlePlaceOrder = () => {
@@ -218,7 +225,7 @@ export function CheckoutPage() {
                 {(
                   [
                     { id: "upi", label: "Pay via UPI / QR Code", emoji: "📲", desc: "PhonePe, GPay, Paytm, any UPI" },
-                    { id: "cod", label: "Cash on Delivery", emoji: "💵", desc: "Pay when delivered" },
+                    ...(codEnabled ? [{ id: "cod" as const, label: "Cash on Delivery", emoji: "💵", desc: "Pay when delivered" }] : []),
                     { id: "card", label: "Credit / Debit Card", emoji: "💳", desc: "Visa, Mastercard, RuPay" },
                   ] as const
                 ).map((method) => (
@@ -256,9 +263,25 @@ export function CheckoutPage() {
                   <p className="text-sm text-muted-foreground text-center mb-3">
                     Scan the QR code with any UPI app to pay
                   </p>
-                  <QRCodeDisplay upiId={upiId} />
-                  <p className="text-center text-xs text-muted-foreground mt-3">
-                    Amount: <span className="font-bold text-foreground">₹{finalTotal.toLocaleString("en-IN")}</span>
+                  {upiQrImageUrl ? (
+                    <div className="flex flex-col items-center gap-3 bg-white p-4 rounded-2xl shadow-card border border-border w-fit mx-auto">
+                      <img
+                        src={upiQrImageUrl}
+                        alt="UPI QR Code"
+                        className="w-40 h-40 object-contain mx-auto rounded-xl border"
+                      />
+                      <div className="text-center">
+                        <p className="text-xs font-medium text-foreground">Scan & Pay via UPI</p>
+                        <p className="text-sm font-bold text-primary">{upiId}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <QRCodeDisplay upiId={upiId} />
+                  )}
+                  <p className="text-center mt-4">
+                    <span className="text-2xl font-bold text-primary">
+                      Scan &amp; Pay ₹{finalTotal.toLocaleString("en-IN")}
+                    </span>
                   </p>
                 </div>
               )}
@@ -276,26 +299,39 @@ export function CheckoutPage() {
             <div className="bg-card rounded-xl p-5 shadow-card sticky top-24">
               <h2 className="font-bold font-display mb-4">Order Summary</h2>
               <div className="space-y-3 max-h-48 overflow-y-auto mb-4">
-                {cartItems.map((item) => (
-                  <div key={item.product.id} className="flex gap-3 text-sm">
-                    <img
-                      src={item.product.imageUrl}
-                      alt={item.product.name}
-                      className="h-12 w-12 rounded-lg object-cover bg-muted shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium leading-tight line-clamp-1">
-                        {item.product.name}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        Qty: {item.quantity} × ₹{item.product.price.toLocaleString("en-IN")}
-                      </p>
+                {cartItems.map((item) => {
+                  const effPrice = getEffectivePrice(item.product);
+                  const isDiscounted = effPrice < item.product.price;
+                  return (
+                    <div key={item.product.id} className="flex gap-3 text-sm">
+                      <img
+                        src={item.product.imageUrl}
+                        alt={item.product.name}
+                        className="h-12 w-12 rounded-lg object-cover bg-muted shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium leading-tight line-clamp-1">
+                          {item.product.name}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          Qty: {item.quantity} ×{" "}
+                          {isDiscounted ? (
+                            <>
+                              <span className="text-foreground font-medium">₹{effPrice.toLocaleString("en-IN")}</span>
+                              {" "}
+                              <span className="line-through">₹{item.product.price.toLocaleString("en-IN")}</span>
+                            </>
+                          ) : (
+                            `₹${effPrice.toLocaleString("en-IN")}`
+                          )}
+                        </p>
+                      </div>
+                      <span className="font-medium shrink-0">
+                        ₹{(effPrice * item.quantity).toLocaleString("en-IN")}
+                      </span>
                     </div>
-                    <span className="font-medium shrink-0">
-                      ₹{(item.product.price * item.quantity).toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <Separator className="my-3" />
               <div className="space-y-2 text-sm">
