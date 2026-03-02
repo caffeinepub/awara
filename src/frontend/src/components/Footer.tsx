@@ -37,11 +37,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
-                  to="/checkout"
-                  className="hover:text-primary transition-colors"
-                >
-                  Checkout
+                <Link to="/my-orders" className="hover:text-primary transition-colors">
+                  My Orders
+                </Link>
+              </li>
+              <li>
+                <Link to="/custom-clothes" className="hover:text-primary transition-colors">
+                  Custom Clothes
                 </Link>
               </li>
               <li>

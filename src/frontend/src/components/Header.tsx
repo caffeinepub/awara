@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart, Search, Menu, X, Package, Heart, HeadphonesIcon } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, Package, Heart, HeadphonesIcon, Shirt, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from "../context/AppContext";
+import { NotificationBell } from "./NotificationBell";
 
 interface HeaderProps {
   searchQuery?: string;
@@ -68,7 +69,33 @@ export function Header({ searchQuery = "", onSearchChange }: HeaderProps) {
           </form>
 
           {/* Right actions */}
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1 ml-auto">
+            {/* Custom Clothes */}
+            <Link to="/custom-clothes">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground hover:bg-white/20 hidden sm:flex"
+                aria-label="Custom Clothes"
+                title="Custom Clothes"
+              >
+                <Shirt className="h-5 w-5" />
+              </Button>
+            </Link>
+
+            {/* My Orders */}
+            <Link to="/my-orders">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground hover:bg-white/20 hidden sm:flex"
+                aria-label="My Orders"
+                title="My Orders"
+              >
+                <ClipboardList className="h-5 w-5" />
+              </Button>
+            </Link>
+
             {/* Support */}
             <Link to="/support">
               <Button
@@ -81,6 +108,11 @@ export function Header({ searchQuery = "", onSearchChange }: HeaderProps) {
                 <HeadphonesIcon className="h-5 w-5" />
               </Button>
             </Link>
+
+            {/* Notification Bell */}
+            <div className="hidden sm:flex">
+              <NotificationBell />
+            </div>
 
             {/* Wishlist */}
             <Link to="/wishlist">
@@ -127,6 +159,19 @@ export function Header({ searchQuery = "", onSearchChange }: HeaderProps) {
               )}
             </button>
           </div>
+        </div>
+
+        {/* Mobile quick nav */}
+        <div className="flex sm:hidden items-center gap-2 mt-2 justify-end">
+          <Link to="/custom-clothes" className="text-primary-foreground text-xs flex items-center gap-1 opacity-80 hover:opacity-100">
+            <Shirt className="h-4 w-4" /> Custom Clothes
+          </Link>
+          <span className="text-primary-foreground/40">|</span>
+          <Link to="/my-orders" className="text-primary-foreground text-xs flex items-center gap-1 opacity-80 hover:opacity-100">
+            <ClipboardList className="h-4 w-4" /> My Orders
+          </Link>
+          <span className="text-primary-foreground/40">|</span>
+          <NotificationBell />
         </div>
 
         {/* Mobile search */}

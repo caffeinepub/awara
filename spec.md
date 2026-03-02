@@ -1,68 +1,64 @@
 # AWARA
 
 ## Current State
-AWARA is a frontend-only e-commerce app built with React + TypeScript + Tailwind CSS. It currently includes:
-- Product listing with categories, search, and filters
-- Shopping cart and checkout with mock payment (UPI QR, COD)
-- Wishlist (no login required, stored in localStorage)
-- Product reviews with star ratings (anyone can leave a review)
-- Admin panel (passkey: awara123) with tabs: Products, Categories, Orders, Discounts, Occasions
-- Discount management (percentage/fixed, per product or all, with expiry date)
-- Free delivery threshold configurable by admin
-- COD enable/disable toggle in admin
-- Occasion theming (admin sets banner image + title + text + date range, auto-activates)
-- UPI QR image upload by admin, shown at checkout with order total
-
-State is stored entirely in localStorage via AppContext.
+AWARA is a frontend-only e-commerce app (React + TypeScript + localStorage) with:
+- Product listing, cart, checkout with mock UPI/COD/card payment
+- Admin panel (passkey: awara123) with tabs: Products, Categories, Discounts, Occasions, Orders, Themes, Support, Custom Orders, Maintenance
+- Wishlist (local), reviews (anonymous), notification bell
+- Occasion theming (auto-activates by date), 9 theme presets (Tokyo default)
+- Custom Orders section (image upload, description, quote flow, QR payment)
+- Maintenance mode (passkey-protected toggle)
+- Per-product COD badge and out-of-stock toggles
+- Timed login pop-ups (0/1/3/7 min)
+- Support page with admin email config
+- Order model: { id, items, total, status, paymentMethod, createdAt, customerName }
 
 ## Requested Changes (Diff)
 
 ### Add
-1. **Timed Login Pop-up** -- Show a modal/banner at 0, 1, 3, and 7 minutes after the page loads. Message: "Sign in to save your cart and wishlist" with a dismiss button. Once dismissed in a session (sessionStorage), do not show again. Suppress entirely if admin is logged in (isAdminLoggedIn === true).
-
-2. **Store Themes** -- 9 preset themes that the admin can switch from the admin panel. Each theme has a name + color preview swatch. The active theme applies CSS variables globally via a `data-theme` attribute on the `<html>` element. 
-
-   Themes:
-   - **Tokyo** (default/active) -- bg: #0d0d0d, primary: #ff2d78, accent: #00e5ff, text: #f0f0f0, card: #1a1a2e
-   - **Minimal White** -- bg: #ffffff, primary: #111111, accent: #555555, text: #111111, card: #f9f9f9
-   - **Diwali** -- bg: #1a0a00, primary: #ff9500, accent: #ffd700, text: #fff8e7, card: #2d1500
-   - **Monsoon** -- bg: #0a1628, primary: #4da6ff, accent: #00e5b0, text: #e8f4ff, card: #102040
-   - **Midnight** -- bg: #0a0a1a, primary: #8b5cf6, accent: #c4b5fd, text: #f5f3ff, card: #12122a
-   - **Sakura** -- bg: #fff5f7, primary: #e91e8c, accent: #ffb3c6, text: #2d1b2e, card: #fff0f3
-   - **Desert Sand** -- bg: #f5e6d3, primary: #c17f24, accent: #d4a96a, text: #3d2b1f, card: #fff8f0
-   - **Ocean** -- bg: #001a2c, primary: #00b4d8, accent: #48cae4, text: #caf0f8, card: #003049
-   - **Neon Mumbai** -- bg: #0f0f0f, primary: #ff4500, accent: #ffcc00, text: #ffffff, card: #1a1a1a
-
-   Admin panel has a new "Themes" tab with name + color swatch preview for each theme. Active theme is persisted in localStorage.
-
-3. **Support Section** -- A "Support" page accessible from the store's navigation. Customers see the support email set by admin. Admin can set/update the support email from the admin panel (new "Support" tab or within Store Settings).
+1. **Order Cancellation** -- Customer can request cancellation of their order from a "My Orders" page/section. Admin sees cancellation requests in the Orders tab and can approve or deny them.
+2. **Enhanced Order Data** -- Orders now store: customerName, contact (phone), deliveryAddress, orderDate (already have createdAt). Admin sees this in the Orders table (expandable row or detail view).
+3. **Custom Clothes Section** -- New page `/custom-clothes` replacing `/custom-orders`. Shows 4 clothing items (Half Sleeve T-shirt, Full Sleeve T-shirt, Hoodie, Women's Full Sleeve T-shirt) each with a white product image. Color selector (Amazon-style swatches) below each item. Admin sets base cost + price per color for each clothing type. Customer picks item + color, uploads a custom design image (via "+" button, visible to admin only), submits. Admin reviews in admin panel, sets final price, and the customer sees a QR code for that exact amount.
+4. **Admin Clothes Config** -- New tab in Admin Panel: "Clothes" -- admin sets base cost + color options (name + price) per clothing type. Admin can add/remove colors, set per-color price.
+5. **Custom Clothes Orders** -- New order type in admin panel showing: clothing type, color selected, base cost, customer uploaded image (private to admin), customer contact info. Admin sets final price → customer sees QR with that amount.
+6. **Complaint Box** -- On the HomePage (front page), a "Complaint Box" section with a form: customer name + message. Submitted complaints go to admin panel (Complaints tab) privately. Admin can reply to any complaint. Once admin replies, the complaint + reply is shown publicly on the homepage (with customer name visible).
+7. **Admin Complaints Tab** -- New tab in Admin Panel showing all complaints. Each shows: customer name, message, date, reply status. Admin can type and submit a reply per complaint. Replied complaints show the reply text.
+8. **No payment hold** -- Remove "payment is held until approval" messaging. Orders are placed and payment is considered complete immediately. Admin sees the order info but does NOT approve/deny payment. Remove Approve/Deny buttons from Orders tab in admin panel.
+9. **My Orders page** -- Simple page `/my-orders` for customers to view their orders (by session), see status, and request cancellation.
 
 ### Modify
-- **AppContext** -- Add `activeTheme` state (string, default "tokyo"), `setActiveTheme` function, `supportEmail` state (string), `setSupportEmail` function. Persist both in localStorage.
-- **App.tsx** -- Add a `/support` route pointing to a new `SupportPage`.
-- **AdminPage.tsx** -- Add two new tabs: "Themes" (theme switcher with swatches) and "Support" (admin sets support email). Also apply the active theme class/data attribute.
-- **index.css or main entry** -- Define CSS variable sets for each theme under `[data-theme="tokyo"]`, `[data-theme="minimal-white"]`, etc. Update Tailwind to use these CSS variables so `bg-background`, `text-foreground`, `bg-primary`, etc. respond to the active theme.
-- **main.tsx or App.tsx** -- On mount, set `document.documentElement.setAttribute('data-theme', activeTheme)` whenever `activeTheme` changes.
+- **Order type** -- Add fields: `contact: string`, `deliveryAddress: string`. Already has `customerName` and `createdAt`.
+- **placeOrder function** -- Accept `contact` and `deliveryAddress` in addition to existing params.
+- **CheckoutPage** -- Pass phone + address to `placeOrder`. Update success message to remove "payment held" language.
+- **Admin Orders Tab** -- Show full order detail (name, contact, address, date, items, payment method, total). Remove Approve/Deny buttons. Add cancellation approval/deny for orders with `cancellationRequested: true`.
+- **App.tsx** -- Replace `/custom-orders` route with `/custom-clothes`. Add `/my-orders` route.
+- **Header/Footer** -- Replace "Custom Orders" link with "Custom Clothes". Add "My Orders" link.
+- **CustomOrdersPage** -- Replaced by CustomClothesPage entirely.
+- **AppContext** -- Add complaint state, custom clothes order state, update Order type, add cancellation request support.
+- **Types** -- Update Order interface. Add Complaint, ClothingConfig, ClothingOrder interfaces.
 
 ### Remove
-- Nothing removed.
+- **CustomOrdersPage.tsx** -- Replaced by CustomClothesPage
+- **"Payment held until approval" messaging** -- Remove from checkout success screen and admin panel
+- **Approve/Deny payment buttons** in admin Orders tab -- Remove (keep cancellation approve/deny)
 
 ## Implementation Plan
-1. Define 9 theme CSS variable sets in `index.css` under `[data-theme="..."]` selectors
-2. Update `AppContext` to add `activeTheme`/`setActiveTheme` and `supportEmail`/`setSupportEmail` with localStorage persistence
-3. Wire `activeTheme` to `document.documentElement.setAttribute('data-theme', ...)` in a `useEffect` at the AppProvider level
-4. Add `TimedLoginPopup` component that tracks session dismissal and shows at 0/1/3/7 min intervals, suppressed when admin is logged in
-5. Mount `TimedLoginPopup` in the root layout (App.tsx or AppProvider) so it runs on every page
-6. Add `ThemesTab` component in AdminPage with 9 theme cards (name + color swatch preview + active indicator)
-7. Add `SupportTab` component in AdminPage for admin to set support email
-8. Add new "Themes" and "Support" tabs to the admin tab list
-9. Create `SupportPage.tsx` with contact support display (support email, basic contact info)
-10. Add `/support` route in `App.tsx`
-11. Add "Support" link in the storefront navigation/footer
+1. Update `types/index.ts` -- add `contact`, `deliveryAddress`, `cancellationRequested` to Order; add Complaint, ClothingConfig, ClothingOrder types
+2. Update `AppContext.tsx` -- add complaint state/actions, clothingOrders state/actions, update placeOrder signature, add cancellation request action
+3. Generate white clothing images (4 types)
+4. Update `CheckoutPage.tsx` -- pass phone+address to placeOrder, update success message
+5. Create `CustomClothesPage.tsx` -- 4 clothing items with color swatches, + upload button, submit flow with QR display after admin quotes price
+6. Create `MyOrdersPage.tsx` -- shows session orders, cancel request button
+7. Update `AdminPage.tsx` -- add Clothes Config tab, Complaints tab; update Orders tab (full detail view, cancellation actions, remove approve/deny payment); add ClothingOrders section
+8. Update `App.tsx` -- swap routes
+9. Update `Header`/`Footer` -- swap nav links
+10. Update `HomePage.tsx` -- add Complaint Box section at bottom
 
 ## UX Notes
-- Tokyo theme is active by default -- the store should look dark/neon on first load
-- Timed pop-up should be a non-intrusive bottom banner or centered modal with a clear dismiss X button
-- Theme swatches in admin should show 3-4 color dots (bg, primary, accent) side by side for quick visual identification
-- Support page should be minimal -- just the email address and a note to contact for help
-- The timed pop-up should not appear on the admin page, only on storefront pages
+- Clothing color swatches: small colored circles (like Amazon) below the product image, selected swatch gets a ring/checkmark
+- Custom design upload "+" button is positioned beside/overlaid on the clothing image area
+- After admin sets final price for a clothing order, customer sees UPI QR + "Pay ₹X" on the Custom Clothes page under their order
+- Complaints on homepage show in a clean card list below the complaint form -- public once admin replies
+- "My Orders" is a lightweight page, no login required -- uses sessionStorage to identify orders by this user
+- Order success page: clean confirmation, no "admin approval" or "payment held" language -- just "Order placed! We'll ship it soon."
+- Admin Orders tab: each row expands or has a detail panel showing full customer info

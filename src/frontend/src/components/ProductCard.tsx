@@ -12,7 +12,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onViewDetail }: ProductCardProps) {
-  const { addToCart, toggleWishlist, isWishlisted, getEffectivePrice } = useApp();
+  const { addToCart, toggleWishlist, isWishlisted, getEffectivePrice, codEnabled } = useApp();
+  const showCodBadge = codEnabled || !!product.codOverride;
   const wishlisted = isWishlisted(product.id);
   const effectivePrice = getEffectivePrice(product);
   const isDiscounted = effectivePrice < product.price;
@@ -86,6 +87,15 @@ export function ProductCard({ product, onViewDetail }: ProductCardProps) {
             {discountBadgeText}
           </Badge>
         )}
+
+        {/* Out of stock overlay */}
+        {!product.inStock && (
+          <div className="absolute inset-0 bg-black/40 flex items-end justify-center pb-3 pointer-events-none">
+            <span className="bg-gray-900/90 text-white text-xs font-semibold px-3 py-1 rounded-full tracking-wide">
+              Out of Stock
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -100,6 +110,12 @@ export function ProductCard({ product, onViewDetail }: ProductCardProps) {
 
         <StarRating rating={product.rating} reviewCount={product.reviewCount} />
 
+        {showCodBadge && (
+          <Badge className="w-fit bg-green-600/90 text-white text-[10px] px-1.5 py-0.5 font-medium">
+            COD Available
+          </Badge>
+        )}
+
         <div className="flex items-center justify-between mt-auto pt-2">
           <div className="flex flex-col">
             <span className="text-lg font-bold text-foreground font-display">
@@ -113,11 +129,13 @@ export function ProductCard({ product, onViewDetail }: ProductCardProps) {
           </div>
           <Button
             size="sm"
-            className="gap-1 text-xs h-8 px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={!product.inStock}
+            className="gap-1 text-xs h-8 px-3 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleAddToCart}
+            title={!product.inStock ? "Out of stock" : undefined}
           >
             <ShoppingCart className="h-3.5 w-3.5" />
-            Add
+            {product.inStock ? "Add" : "N/A"}
           </Button>
         </div>
       </div>

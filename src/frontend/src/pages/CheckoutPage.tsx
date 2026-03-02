@@ -92,7 +92,7 @@ export function CheckoutPage() {
         ? "Cash on Delivery"
         : "Card Payment";
 
-    const order = placeOrder(methodLabel, customerName);
+    const order = placeOrder(methodLabel, customerName, phone, address);
     setOrderPlaced(order);
   };
 
@@ -128,31 +128,37 @@ export function CheckoutPage() {
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold font-display mb-2">
-              Order Placed Successfully!
+              Order Placed!
             </h2>
             <p className="text-muted-foreground mb-2">
               Order ID: <span className="font-mono font-medium text-foreground">{orderPlaced.id}</span>
             </p>
             <p className="text-muted-foreground mb-6">
-              Your order is pending admin approval. You'll be notified once it's
-              confirmed.
+              We'll process and ship your order soon. Thank you for shopping with AWARA!
             </p>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left mb-6">
-              <p className="text-sm font-medium text-amber-800">
-                📋 What happens next?
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-left mb-6">
+              <p className="text-sm font-medium text-green-800">
+                ✅ What happens next?
               </p>
-              <ul className="mt-2 space-y-1 text-xs text-amber-700">
-                <li>• Admin will review your order</li>
-                <li>• Payment is held until approval</li>
-                <li>• You'll receive confirmation via notification</li>
+              <ul className="mt-2 space-y-1 text-xs text-green-700">
+                <li>• Your order has been received</li>
+                <li>• We'll pack and dispatch it shortly</li>
+                <li>• Track your order in My Orders</li>
               </ul>
             </div>
-            <Link to="/">
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
-                <Package className="h-4 w-4" />
-                Continue Shopping
-              </Button>
-            </Link>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <Link to="/my-orders">
+                <Button variant="outline" className="gap-2">
+                  <Package className="h-4 w-4" />
+                  View My Orders
+                </Button>
+              </Link>
+              <Link to="/">
+                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
+                  Continue Shopping
+                </Button>
+              </Link>
+            </div>
           </div>
         </main>
         <Footer />
@@ -361,7 +367,7 @@ export function CheckoutPage() {
                 Confirm Order
               </Button>
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Your order needs admin approval before processing
+                Your order will be processed and shipped after confirmation
               </p>
             </div>
           </div>

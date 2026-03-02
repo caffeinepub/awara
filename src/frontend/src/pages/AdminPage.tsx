@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   ShieldCheck,
   LogOut,
@@ -49,10 +50,22 @@ import {
   Palette,
   HeadphonesIcon,
   Mail,
+  Paintbrush,
+  Wrench,
+  AlertTriangle,
+  ImageIcon,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Shirt,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  Eye,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { toast } from "sonner";
-import type { Product, Category, Discount, Occasion } from "../types";
+import type { Product, Category, Discount, Occasion, CustomOrderRequest, ClothingConfig, ClothingOrder, Complaint } from "../types";
 import { ALL_CATEGORIES } from "../types";
 
 // Admin Login Screen
@@ -295,7 +308,7 @@ function ProductFormDialog({
 
 // Products Tab
 function ProductsTab() {
-  const { products, deleteProduct } = useApp();
+  const { products, deleteProduct, updateProduct } = useApp();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [search, setSearch] = useState("");
@@ -349,14 +362,15 @@ function ProductsTab() {
               <TableHead>Product</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Rating</TableHead>
+              <TableHead title="Toggle product availability">In Stock</TableHead>
+              <TableHead title="Show COD Available badge on product card">COD Badge</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No products found
                 </TableCell>
               </TableRow>
@@ -365,11 +379,18 @@ function ProductsTab() {
                 <TableRow key={product.id} className="hover:bg-muted/40">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="h-10 w-10 rounded-lg object-cover bg-muted shrink-0"
-                      />
+                      <div className="relative shrink-0">
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="h-10 w-10 rounded-lg object-cover bg-muted"
+                        />
+                        {!product.inStock && (
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1 rounded-full leading-4">
+                            OOS
+                          </span>
+                        )}
+                      </div>
                       <span className="font-medium text-sm line-clamp-1">
                         {product.name}
                       </span>
@@ -383,8 +404,33 @@ function ProductsTab() {
                   <TableCell className="font-medium">
                     ₹{product.price.toLocaleString("en-IN")}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    ⭐ {product.rating}
+                  <TableCell>
+                    <Switch
+                      checked={product.inStock !== false}
+                      onCheckedChange={(checked) => {
+                        updateProduct(product.id, { inStock: checked });
+                        toast.success(
+                          checked
+                            ? `"${product.name}" is now in stock`
+                            : `"${product.name}" marked as out of stock`
+                        );
+                      }}
+                      aria-label="Toggle in stock"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={!!product.codOverride}
+                      onCheckedChange={(checked) => {
+                        updateProduct(product.id, { codOverride: checked });
+                        toast.success(
+                          checked
+                            ? `COD badge enabled for "${product.name}"`
+                            : `COD badge removed from "${product.name}"`
+                        );
+                      }}
+                      aria-label="Toggle COD badge"
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center gap-1 justify-end">
@@ -948,15 +994,10 @@ function OccasionsTab() {
   );
 }
 
-// Orders Tab
-function OrdersTab() {
-  const { orders, updateOrderStatus, upiId, setUpiId, upiQrImageUrl, setUpiQrImageUrl, codEnabled, setCodEnabled, freeDeliveryThreshold, setFreeDeliveryThreshold } = useApp();
-  const [editingUpi, setEditingUpi] = useState(false);
-  const [newUpi, setNewUpi] = useState(upiId);
-  const [editingThreshold, setEditingThreshold] = useState(false);
-  const [newThreshold, setNewThreshold] = useState(String(freeDeliveryThreshold));
-  const [editingQr, setEditingQr] = useState(false);
-  const [newQrUrl, setNewQrUrl] = useState(upiQrImageUrl);
+// Orders Tab - expandable order details, cancellation management
+function OrderDetailsRow({ order }: { order: import("../types").Order }) {
+  const { updateCancellationStatus } = useApp();
+  const [expanded, setExpanded] = useState(false);
 
   const statusColor: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -964,6 +1005,140 @@ function OrdersTab() {
     denied: "bg-red-100 text-red-800",
     cancelled: "bg-gray-100 text-gray-800",
   };
+
+  return (
+    <>
+      <TableRow className="hover:bg-muted/40">
+        <TableCell className="font-mono text-xs">{order.id.slice(0, 12)}…</TableCell>
+        <TableCell>
+          <div>
+            <p className="text-sm font-medium">{order.customerName}</p>
+            <p className="text-xs text-muted-foreground">{order.contact || "—"}</p>
+          </div>
+        </TableCell>
+        <TableCell className="text-sm text-muted-foreground">
+          {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+        </TableCell>
+        <TableCell className="font-medium">
+          ₹{order.total.toLocaleString("en-IN")}
+        </TableCell>
+        <TableCell className="text-sm text-muted-foreground">
+          {order.paymentMethod}
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-col gap-1">
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium w-fit ${statusColor[order.status] ?? ""}`}>
+              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+            </span>
+            {order.cancellationRequested && order.cancellationStatus === "pending" && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 w-fit">
+                Cancel Req.
+              </span>
+            )}
+          </div>
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex items-center gap-1 justify-end">
+            {order.cancellationRequested && order.cancellationStatus === "pending" && (
+              <>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => {
+                    updateCancellationStatus(order.id, "approved");
+                    toast.success("Cancellation approved");
+                  }}
+                >
+                  <Check className="h-3 w-3 mr-1" />
+                  Approve Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    updateCancellationStatus(order.id, "denied");
+                    toast.info("Cancellation denied");
+                  }}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Deny
+                </Button>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+      {expanded && (
+        <TableRow>
+          <TableCell colSpan={7} className="bg-muted/20 px-4 py-3">
+            <div className="space-y-3">
+              {/* Customer details */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Order Date</p>
+                  <p className="font-medium">
+                    {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Phone</p>
+                  <p className="font-medium">{order.contact || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Delivery Address</p>
+                  <p className="font-medium">{order.deliveryAddress || "—"}</p>
+                </div>
+              </div>
+              <Separator />
+              {/* Products */}
+              <div className="space-y-2">
+                {order.items.map((item) => (
+                  <div key={item.product.id} className="flex items-center gap-3">
+                    <img
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
+                      className="w-9 h-9 rounded-lg object-cover bg-muted border border-border shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium line-clamp-1">{item.product.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Qty: {item.quantity} × ₹{item.product.price.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <span className="text-sm font-medium shrink-0">
+                      ₹{(item.product.price * item.quantity).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-right text-sm font-bold">
+                Total: ₹{order.total.toLocaleString("en-IN")}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
+function OrdersTab() {
+  const { orders, upiId, setUpiId, upiQrImageUrl, setUpiQrImageUrl, codEnabled, setCodEnabled, freeDeliveryThreshold, setFreeDeliveryThreshold } = useApp();
+  const [editingUpi, setEditingUpi] = useState(false);
+  const [newUpi, setNewUpi] = useState(upiId);
+  const [editingThreshold, setEditingThreshold] = useState(false);
+  const [newThreshold, setNewThreshold] = useState(String(freeDeliveryThreshold));
+  const [editingQr, setEditingQr] = useState(false);
+  const [newQrUrl, setNewQrUrl] = useState(upiQrImageUrl);
 
   return (
     <div className="space-y-6">
@@ -1200,55 +1375,7 @@ function OrdersTab() {
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                <TableRow key={order.id} className="hover:bg-muted/40">
-                  <TableCell className="font-mono text-xs">{order.id}</TableCell>
-                  <TableCell className="text-sm">{order.customerName}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {order.items.length} item{order.items.length !== 1 ? "s" : ""}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    ₹{order.total.toLocaleString("en-IN")}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {order.paymentMethod}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[order.status] ?? ""}`}
-                    >
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {order.status === "pending" && (
-                      <div className="flex gap-1 justify-end">
-                        <Button
-                          size="sm"
-                          className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => {
-                            updateOrderStatus(order.id, "approved");
-                            toast.success("Order approved");
-                          }}
-                        >
-                          <Check className="h-3 w-3 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={() => {
-                            updateOrderStatus(order.id, "denied");
-                            toast.info("Order denied");
-                          }}
-                        >
-                          <X className="h-3 w-3 mr-1" />
-                          Deny
-                        </Button>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
+                <OrderDetailsRow key={order.id} order={order} />
               ))}
             </TableBody>
           </Table>
@@ -1516,11 +1643,845 @@ function SupportTab() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom Orders Admin Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CO_STATUS_CONFIG: Record<
+  CustomOrderRequest["status"],
+  { label: string; className: string; icon: React.ReactNode }
+> = {
+  pending: {
+    label: "Pending",
+    className: "bg-yellow-100 text-yellow-800",
+    icon: <Clock className="h-3 w-3" />,
+  },
+  accepted: {
+    label: "Accepted",
+    className: "bg-green-100 text-green-800",
+    icon: <CheckCircle2 className="h-3 w-3" />,
+  },
+  rejected: {
+    label: "Rejected",
+    className: "bg-red-100 text-red-800",
+    icon: <XCircle className="h-3 w-3" />,
+  },
+};
+
+function CustomOrdersAdminTab() {
+  const { customOrders, updateCustomOrderStatus } = useApp();
+  const [quotePrices, setQuotePrices] = useState<Record<string, string>>({});
+  const [accepting, setAccepting] = useState<string | null>(null);
+
+  const handleAccept = (orderId: string) => {
+    const priceStr = quotePrices[orderId];
+    const price = parseFloat(priceStr);
+    if (isNaN(price) || price <= 0) {
+      toast.error("Enter a valid quoted price");
+      return;
+    }
+    updateCustomOrderStatus(orderId, "accepted", price);
+    setAccepting(null);
+    setQuotePrices((prev) => {
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
+    toast.success("Custom order accepted");
+  };
+
+  const handleReject = (orderId: string) => {
+    if (!confirm("Reject this custom order?")) return;
+    updateCustomOrderStatus(orderId, "rejected");
+    toast.info("Custom order rejected");
+  };
+
+  return (
+    <div className="space-y-4">
+      {customOrders.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Paintbrush className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p>No custom order requests yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {customOrders.map((order) => {
+            const cfg = CO_STATUS_CONFIG[order.status];
+            const isAccepting = accepting === order.id;
+            return (
+              <div
+                key={order.id}
+                className="bg-card border border-border rounded-xl p-4 flex gap-4 items-start"
+              >
+                {/* Image */}
+                <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-muted border border-border flex items-center justify-center">
+                  {order.imageUrl ? (
+                    <img
+                      src={order.imageUrl}
+                      alt="Custom order"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
+                  )}
+                </div>
+
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span
+                      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cfg.className}`}
+                    >
+                      {cfg.icon}
+                      {cfg.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {order.id.slice(0, 12)}…
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(order.createdAt).toLocaleDateString("en-IN")}
+                    </span>
+                  </div>
+
+                  <p className="text-sm font-medium text-foreground line-clamp-2">
+                    {order.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+                    <span>Qty: {order.quantity}</span>
+                    {order.dimensions && <span>Size: {order.dimensions}</span>}
+                    {order.budget && <span>Budget: {order.budget}</span>}
+                  </div>
+
+                  {order.status === "accepted" && order.quotedPrice !== undefined && (
+                    <p className="text-xs text-green-700 font-semibold mt-1">
+                      Quoted Price: ₹{order.quotedPrice.toLocaleString("en-IN")}
+                    </p>
+                  )}
+
+                  {/* Actions for pending orders */}
+                  {order.status === "pending" && (
+                    <div className="mt-2">
+                      {isAccepting ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Quoted price (₹)"
+                            value={quotePrices[order.id] ?? ""}
+                            onChange={(e) =>
+                              setQuotePrices((prev) => ({ ...prev, [order.id]: e.target.value }))
+                            }
+                            className="h-8 text-xs max-w-[140px]"
+                          />
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white gap-1"
+                            onClick={() => handleAccept(order.id)}
+                          >
+                            <Check className="h-3 w-3" />
+                            Confirm
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setAccepting(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white gap-1"
+                            onClick={() => setAccepting(order.id)}
+                          >
+                            <Check className="h-3 w-3" />
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground gap-1"
+                            onClick={() => handleReject(order.id)}
+                          >
+                            <X className="h-3 w-3" />
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clothes Config Admin Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ClothesAdminTab() {
+  const { clothingConfigs, updateClothingConfig } = useApp();
+  const [editingBaseCost, setEditingBaseCost] = useState<Record<string, string>>({});
+  const [newColorForms, setNewColorForms] = useState<
+    Record<string, { color: string; hex: string; extraPrice: string }>
+  >({});
+
+  const handleSaveBaseCost = (configId: string) => {
+    const val = parseFloat(editingBaseCost[configId] ?? "");
+    if (isNaN(val) || val <= 0) { toast.error("Enter a valid base cost"); return; }
+    updateClothingConfig(configId, { baseCost: val });
+    setEditingBaseCost((prev) => { const n = { ...prev }; delete n[configId]; return n; });
+    toast.success("Base cost updated");
+  };
+
+  const handleUpdateColorPrice = (configId: string, colorIndex: number, extraPrice: number) => {
+    const config = clothingConfigs.find((c) => c.id === configId);
+    if (!config) return;
+    const updated = config.colors.map((c, i) => i === colorIndex ? { ...c, extraPrice } : c);
+    updateClothingConfig(configId, { colors: updated });
+  };
+
+  const handleRemoveColor = (configId: string, colorIndex: number) => {
+    const config = clothingConfigs.find((c) => c.id === configId);
+    if (!config) return;
+    const updated = config.colors.filter((_, i) => i !== colorIndex);
+    updateClothingConfig(configId, { colors: updated });
+    toast.success("Color removed");
+  };
+
+  const handleAddColor = (configId: string) => {
+    const form = newColorForms[configId];
+    if (!form?.color?.trim()) { toast.error("Enter color name"); return; }
+    if (!form.hex?.match(/^#[0-9a-fA-F]{6}$/)) { toast.error("Enter a valid hex color (e.g. #ff0000)"); return; }
+    const extraPrice = parseFloat(form.extraPrice) || 0;
+    const config = clothingConfigs.find((c) => c.id === configId);
+    if (!config) return;
+    updateClothingConfig(configId, {
+      colors: [...config.colors, { color: form.color.trim(), hex: form.hex, extraPrice }],
+    });
+    setNewColorForms((prev) => { const n = { ...prev }; delete n[configId]; return n; });
+    toast.success("Color added");
+  };
+
+  return (
+    <div className="space-y-6">
+      {clothingConfigs.map((config) => (
+        <div key={config.id} className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-start gap-4 mb-4">
+            <img
+              src={config.imageUrl}
+              alt={config.name}
+              className="w-16 h-16 object-contain bg-muted rounded-lg border border-border shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold font-display text-base mb-2">{config.name}</h3>
+
+              {/* Base cost */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Label className="text-xs text-muted-foreground">Base Cost (₹):</Label>
+                {editingBaseCost[config.id] !== undefined ? (
+                  <>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={editingBaseCost[config.id]}
+                      onChange={(e) =>
+                        setEditingBaseCost((prev) => ({ ...prev, [config.id]: e.target.value }))
+                      }
+                      className="h-7 text-xs w-24"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                      onClick={() => handleSaveBaseCost(config.id)}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setEditingBaseCost((prev) => { const n = { ...prev }; delete n[config.id]; return n; })
+                      }
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
+                      ₹{config.baseCost}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() =>
+                        setEditingBaseCost((prev) => ({ ...prev, [config.id]: String(config.baseCost) }))
+                      }
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Colors */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Colors</p>
+            {config.colors.map((color, idx) => (
+              <div key={`${config.id}-${color.color}`} className="flex items-center gap-3 flex-wrap">
+                <div
+                  className="w-6 h-6 rounded-full border border-border shrink-0"
+                  style={{ backgroundColor: color.hex }}
+                />
+                <span className="text-sm font-medium w-20 shrink-0">{color.color}</span>
+                <span className="text-xs text-muted-foreground font-mono">{color.hex}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">+₹</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={color.extraPrice}
+                    onChange={(e) => handleUpdateColorPrice(config.id, idx, parseFloat(e.target.value) || 0)}
+                    className="h-7 text-xs w-16"
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                  onClick={() => handleRemoveColor(config.id, idx)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+
+            {/* Add new color */}
+            {newColorForms[config.id] !== undefined ? (
+              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-dashed border-border">
+                <Input
+                  placeholder="Color name"
+                  value={newColorForms[config.id]?.color ?? ""}
+                  onChange={(e) =>
+                    setNewColorForms((prev) => ({ ...prev, [config.id]: { ...prev[config.id], color: e.target.value } }))
+                  }
+                  className="h-7 text-xs w-28"
+                />
+                <Input
+                  placeholder="#hex"
+                  value={newColorForms[config.id]?.hex ?? ""}
+                  onChange={(e) =>
+                    setNewColorForms((prev) => ({ ...prev, [config.id]: { ...prev[config.id], hex: e.target.value } }))
+                  }
+                  className="h-7 text-xs w-24"
+                />
+                <Input
+                  placeholder="+₹ extra"
+                  type="number"
+                  min="0"
+                  value={newColorForms[config.id]?.extraPrice ?? ""}
+                  onChange={(e) =>
+                    setNewColorForms((prev) => ({ ...prev, [config.id]: { ...prev[config.id], extraPrice: e.target.value } }))
+                  }
+                  className="h-7 text-xs w-20"
+                />
+                <Button
+                  size="sm"
+                  className="h-7 text-xs bg-primary text-primary-foreground"
+                  onClick={() => handleAddColor(config.id)}
+                >
+                  Add
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() =>
+                    setNewColorForms((prev) => { const n = { ...prev }; delete n[config.id]; return n; })
+                  }
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1 mt-1"
+                onClick={() =>
+                  setNewColorForms((prev) => ({ ...prev, [config.id]: { color: "", hex: "#", extraPrice: "0" } }))
+                }
+              >
+                <Plus className="h-3 w-3" />
+                Add Color
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clothing Orders Admin Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ClothingOrdersAdminTab() {
+  const { clothingOrders, updateClothingOrderStatus } = useApp();
+  const [quotePrices, setQuotePrices] = useState<Record<string, string>>({});
+  const [quoting, setQuoting] = useState<string | null>(null);
+  const [viewDesign, setViewDesign] = useState<{ url: string; name: string } | null>(null);
+
+  const statusConfig = {
+    pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800", icon: <Clock className="h-3 w-3" /> },
+    quoted: { label: "Quoted", className: "bg-green-100 text-green-800", icon: <CheckCircle2 className="h-3 w-3" /> },
+    cancelled: { label: "Cancelled", className: "bg-gray-100 text-gray-600", icon: <XCircle className="h-3 w-3" /> },
+  };
+
+  const handleSetPrice = (orderId: string) => {
+    const price = parseFloat(quotePrices[orderId] ?? "");
+    if (isNaN(price) || price <= 0) { toast.error("Enter a valid price"); return; }
+    updateClothingOrderStatus(orderId, "quoted", price);
+    setQuoting(null);
+    setQuotePrices((prev) => { const n = { ...prev }; delete n[orderId]; return n; });
+    toast.success("Price quoted and customer notified");
+  };
+
+  return (
+    <div className="space-y-4">
+      {clothingOrders.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Shirt className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p>No clothing orders yet</p>
+        </div>
+      ) : (
+        <div className="border border-border rounded-xl overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted">
+                <TableHead>ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Item</TableHead>
+                <TableHead>Color</TableHead>
+                <TableHead>Base</TableHead>
+                <TableHead>Design</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Quoted ₹</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clothingOrders.map((order: ClothingOrder) => {
+                const cfg = statusConfig[order.status];
+                return (
+                  <TableRow key={order.id} className="hover:bg-muted/40">
+                    <TableCell className="font-mono text-xs">{order.id.slice(0, 10)}…</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm font-medium">{order.customerName}</p>
+                        <p className="text-xs text-muted-foreground">{order.contact}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{order.clothingName}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          className="w-4 h-4 rounded-full border border-border shrink-0"
+                          style={{ backgroundColor: order.colorHex }}
+                        />
+                        <span className="text-xs">{order.colorName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">₹{order.baseCost + order.colorExtraPrice}</TableCell>
+                    <TableCell>
+                      {order.customerDesignImageUrl ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs gap-1"
+                          onClick={() => setViewDesign({ url: order.customerDesignImageUrl!, name: order.clothingName })}
+                        >
+                          <Eye className="h-3 w-3" />
+                          View
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">None</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cfg.className}`}>
+                        {cfg.icon}
+                        {cfg.label}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">
+                      {order.quotedPrice !== undefined ? `₹${order.quotedPrice}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {order.status === "pending" && (
+                        quoting === order.id ? (
+                          <div className="flex items-center gap-1 justify-end">
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="₹"
+                              value={quotePrices[order.id] ?? ""}
+                              onChange={(e) =>
+                                setQuotePrices((prev) => ({ ...prev, [order.id]: e.target.value }))
+                              }
+                              className="h-7 text-xs w-20"
+                            />
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => handleSetPrice(order.id)}
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => setQuoting(null)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                            onClick={() => setQuoting(order.id)}
+                          >
+                            Set Price
+                          </Button>
+                        )
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Design image modal */}
+      <Dialog open={!!viewDesign} onOpenChange={() => setViewDesign(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display">Customer Design — {viewDesign?.name}</DialogTitle>
+          </DialogHeader>
+          {viewDesign && (
+            <img src={viewDesign.url} alt="Customer design" className="w-full rounded-lg border border-border" />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Complaints Admin Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ComplaintsAdminTab() {
+  const { complaints, replyToComplaint } = useApp();
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  const handleReply = (id: string) => {
+    const text = replyTexts[id]?.trim();
+    if (!text) { toast.error("Reply cannot be empty"); return; }
+    replyToComplaint(id, text);
+    setReplyingTo(null);
+    setReplyTexts((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    toast.success("Reply sent and will be shown publicly");
+  };
+
+  return (
+    <div className="space-y-4">
+      {complaints.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p>No complaints received yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {complaints.map((complaint: Complaint) => (
+            <div
+              key={complaint.id}
+              className="bg-card border border-border rounded-xl p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="font-semibold text-sm">{complaint.customerName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(complaint.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                    {complaint.reply ? (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 font-medium">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Replied
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                        <Clock className="h-3 w-3" />
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed">{complaint.message}</p>
+
+                  {complaint.reply ? (
+                    <div className="mt-3 bg-muted/50 rounded-lg p-3 border-l-4 border-primary">
+                      <p className="text-xs text-muted-foreground mb-1">Your reply:</p>
+                      <p className="text-sm">{complaint.reply}</p>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      {replyingTo === complaint.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            placeholder="Write your reply..."
+                            value={replyTexts[complaint.id] ?? ""}
+                            onChange={(e) =>
+                              setReplyTexts((prev) => ({ ...prev, [complaint.id]: e.target.value }))
+                            }
+                            rows={3}
+                            className="text-sm resize-none"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                              onClick={() => handleReply(complaint.id)}
+                            >
+                              Send Reply (Public)
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={() => setReplyingTo(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1"
+                          onClick={() => setReplyingTo(complaint.id)}
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          Reply
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Maintenance Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+function MaintenanceTab() {
+  const { maintenanceMode, setMaintenanceMode, adminLogin } = useApp();
+  const [passkeyDialogOpen, setPasskeyDialogOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    active: boolean;
+    message: string;
+  } | null>(null);
+  const [passkey, setPasskey] = useState("");
+  const [passkeyError, setPasskeyError] = useState(false);
+  const [messageInput, setMessageInput] = useState(maintenanceMode.message);
+
+  const requestToggle = (active: boolean) => {
+    setPendingAction({ active, message: messageInput });
+    setPasskey("");
+    setPasskeyError(false);
+    setPasskeyDialogOpen(true);
+  };
+
+  const confirmToggle = () => {
+    const valid = adminLogin(passkey);
+    if (!valid) {
+      setPasskeyError(true);
+      return;
+    }
+    if (pendingAction) {
+      setMaintenanceMode(pendingAction.active, pendingAction.message);
+      toast.success(
+        pendingAction.active
+          ? "Website is now in maintenance mode"
+          : "Website is now active"
+      );
+    }
+    setPasskeyDialogOpen(false);
+    setPendingAction(null);
+    setPasskey("");
+  };
+
+  return (
+    <div className="space-y-6 max-w-lg">
+      <div className="bg-card border border-border rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Wrench className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold font-display">Website Status</h3>
+        </div>
+
+        <div className="flex items-center justify-between p-4 bg-muted/40 rounded-xl mb-4">
+          <div>
+            <p className="font-medium text-sm">
+              {maintenanceMode.active ? (
+                <span className="flex items-center gap-2 text-amber-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  Maintenance Mode Active
+                </span>
+              ) : (
+                <span className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Store is Live
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {maintenanceMode.active
+                ? "Visitors see the maintenance page. Admin panel is always accessible."
+                : "Customers can browse and shop normally."}
+            </p>
+          </div>
+          <Button
+            variant={maintenanceMode.active ? "default" : "outline"}
+            size="sm"
+            className={
+              maintenanceMode.active
+                ? "bg-green-600 hover:bg-green-700 text-white"
+                : "border-amber-500 text-amber-600 hover:bg-amber-50"
+            }
+            onClick={() => requestToggle(!maintenanceMode.active)}
+          >
+            {maintenanceMode.active ? "Go Live" : "Enable Maintenance"}
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="maint-msg" className="text-sm font-medium">
+            Maintenance Message
+          </Label>
+          <Textarea
+            id="maint-msg"
+            value={messageInput}
+            onChange={(e) => setMessageInput(e.target.value)}
+            placeholder="We'll be back soon. Under maintenance."
+            rows={3}
+            className="resize-none"
+          />
+          <p className="text-xs text-muted-foreground">
+            This message is shown to visitors when the site is in maintenance mode.
+          </p>
+          {maintenanceMode.active && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-1"
+              onClick={() => {
+                setMaintenanceMode(true, messageInput);
+                toast.success("Maintenance message updated");
+              }}
+            >
+              <Check className="h-3.5 w-3.5 mr-1" />
+              Update Message
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Passkey confirmation dialog */}
+      <Dialog open={passkeyDialogOpen} onOpenChange={setPasskeyDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" />
+              Confirm with Passkey
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Enter your admin passkey to{" "}
+            {pendingAction?.active ? "enable maintenance mode" : "go live"}.
+          </p>
+          <div className="mt-2">
+            <Input
+              type="password"
+              placeholder="Admin passkey"
+              value={passkey}
+              onChange={(e) => {
+                setPasskey(e.target.value);
+                setPasskeyError(false);
+              }}
+              className={passkeyError ? "border-destructive" : ""}
+              onKeyDown={(e) => e.key === "Enter" && confirmToggle()}
+            />
+            {passkeyError && (
+              <p className="text-xs text-destructive mt-1">Invalid passkey</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 mt-2">
+            <Button variant="outline" onClick={() => setPasskeyDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={confirmToggle}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // Main Admin Dashboard
 function AdminDashboard() {
-  const { adminLogout, products, orders } = useApp();
+  const { adminLogout, products, orders, customOrders, clothingOrders, complaints } = useApp();
 
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
+  const pendingCustomOrders = customOrders.filter((o) => o.status === "pending").length;
+  const pendingClothingOrders = clothingOrders.filter((o) => o.status === "pending").length;
+  const pendingComplaints = complaints.filter((c) => !c.reply).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -1553,7 +2514,7 @@ function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="bg-card rounded-xl p-4 shadow-card border border-border">
             <div className="flex items-center gap-3">
               <Package className="h-8 w-8 text-primary" />
@@ -1583,6 +2544,20 @@ function AdminDashboard() {
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">Pending Orders</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-card rounded-xl p-4 shadow-card border border-border">
+            <div className="flex items-center gap-3">
+              <Paintbrush className="h-8 w-8 text-primary" />
+              <div>
+                <p className="text-2xl font-bold font-display">
+                  {pendingCustomOrders}
+                  {pendingCustomOrders > 0 && (
+                    <span className="text-sm text-amber-600 ml-1">⚠</span>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">Custom Requests</p>
               </div>
             </div>
           </div>
@@ -1627,6 +2602,41 @@ function AdminDashboard() {
               <HeadphonesIcon className="h-4 w-4" />
               Support
             </TabsTrigger>
+            <TabsTrigger value="custom-orders" className="gap-2">
+              <Paintbrush className="h-4 w-4" />
+              Custom Orders
+              {pendingCustomOrders > 0 && (
+                <Badge className="ml-1 bg-amber-500 text-white text-xs">
+                  {pendingCustomOrders}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="clothes" className="gap-2">
+              <Shirt className="h-4 w-4" />
+              Clothes
+            </TabsTrigger>
+            <TabsTrigger value="clothing-orders" className="gap-2">
+              <Shirt className="h-4 w-4" />
+              Clothing Orders
+              {pendingClothingOrders > 0 && (
+                <Badge className="ml-1 bg-amber-500 text-white text-xs">
+                  {pendingClothingOrders}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="complaints" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Complaints
+              {pendingComplaints > 0 && (
+                <Badge className="ml-1 bg-red-500 text-white text-xs">
+                  {pendingComplaints}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="maintenance" className="gap-2">
+              <Wrench className="h-4 w-4" />
+              Maintenance
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="products">
@@ -1649,6 +2659,21 @@ function AdminDashboard() {
           </TabsContent>
           <TabsContent value="support">
             <SupportTab />
+          </TabsContent>
+          <TabsContent value="custom-orders">
+            <CustomOrdersAdminTab />
+          </TabsContent>
+          <TabsContent value="clothes">
+            <ClothesAdminTab />
+          </TabsContent>
+          <TabsContent value="clothing-orders">
+            <ClothingOrdersAdminTab />
+          </TabsContent>
+          <TabsContent value="complaints">
+            <ComplaintsAdminTab />
+          </TabsContent>
+          <TabsContent value="maintenance">
+            <MaintenanceTab />
           </TabsContent>
         </Tabs>
       </div>
